@@ -2,15 +2,19 @@ import React, { Component } from 'react';
 import './Register.css';
 
 class Register extends Component {
-    state = {
-        username: "",
-        password: "",
-        confirmPassword: "",
-        submitted: false,
-        usernameAlertHidden: true,
-        passwordAlertHidden: true,
-        confirmPasswordAlertHidden: true
+    constructor(props) {
+        super(props)
+        this.state = {
+            username: "",
+            password: "",
+            confirmPassword: "",
+            submitted: false,
+            usernameAlertHidden: true,
+            passwordAlertHidden: true,
+            confirmPasswordAlertHidden: true
+        }
     }
+
 
     onChange = (e) => {
         this.setState({ [e.target.name]: e.target.value }, this.validateInput);
@@ -30,7 +34,7 @@ class Register extends Component {
     }
 
     usernameValid() {
-        return this.state.username.length > 3? true : false;
+        return this.state.username.length > 3 ? true : false;
     }
 
     passwordValid() {
@@ -44,21 +48,23 @@ class Register extends Component {
     render() {
         return (
             <div >
-                <form onSubmit={this.onSubmit}>
-                    <h2>Sign Up</h2>
-                    <p>
+                <form onSubmit={this.onSubmit} id="register_form">
+                    <h2 id="register_h2">Sign Up</h2>
+                    <p className="register_p">
                         <input
+                            className="register_input"
                             type="text"
                             name="username"
                             placeholder="Username"
                             value={this.state.username}
                             onChange={this.onChange}
                         />
-                        <span style={{visibility: this.state.usernameAlertHidden ? 'hidden' : 'visible' }} 
+                        <span className="register_span" style={{ visibility: this.state.usernameAlertHidden ? 'hidden' : 'visible' }}
                         >Enter a username longer than 4 characters</span>
                     </p>
-                    <p>
+                    <p className="register_p">
                         <input
+                            className="register_input"
                             type="password"
                             name="password"
                             placeholder="Password"
@@ -66,11 +72,12 @@ class Register extends Component {
 
                             onChange={this.onChange}
                         />
-                        <span style={{visibility: this.state.passwordAlertHidden ? 'hidden' : 'visible' }} 
+                        <span className="register_span" style={{ visibility: this.state.passwordAlertHidden ? 'hidden' : 'visible' }}
                         >Enter a password longer than 5 characters</span>
                     </p>
-                    <p>
+                    <p className="register_p">
                         <input
+                            className="register_input"
                             type="password"
                             name="confirmPassword"
                             placeholder="Confirm password"
@@ -78,11 +85,11 @@ class Register extends Component {
 
                             onChange={this.onChange}
                         />
-                        <span style={{visibility: this.state.confirmPasswordAlertHidden ? 'hidden' : 'visible' }} 
+                        <span className="register_span" style={{ visibility: this.state.confirmPasswordAlertHidden ? 'hidden' : 'visible' }}
                         >Your passwords do not match</span>
                     </p>
-                    <p>
-                        <input type="submit" value="Create My Account" id="submit"  />
+                    <p className="register_p">
+                        <input className="register_input" type="submit" value="Create My Account" id="submit" />
                     </p>
                 </form>
             </div>

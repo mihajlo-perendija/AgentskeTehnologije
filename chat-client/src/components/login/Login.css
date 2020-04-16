@@ -2,11 +2,11 @@ button{
     color:  rgba(148,186,101,0.7);
 } 
 
-#register_form {
+#login_form {
     min-width: 450px;
-    max-height: 540px;
+    max-height: 500px;
     width: 100%;
-    height: 95vh;
+    height: 85vh;
     background: #ffffff;
     padding: 4em 4em 2em;
     max-width: 400px;
@@ -14,7 +14,7 @@ button{
     box-shadow: 0 0 1em #222;
     border-radius: 2px;
 }
-#register_h2 {
+#login_h2 {
     margin:0 0 50px 0;
     padding:10px;
     text-align:center;
@@ -23,36 +23,36 @@ button{
     border-bottom:solid 1px #e5e5e5;
 }
 
-.register_p {
+.login_p {
     margin: 0 0 3em 0;
     position: relative;
 }
-.register_input {
+.login_input {
     display: block;
     box-sizing: border-box;
     width: 100%;
     outline: none;
     margin:0;
 }
-.register_input[type="text"],
-.register_input[type="password"] {
+.login_input[type="text"],
+.login_input[type="password"] {
     background: #fff;
     border: 1px solid #dbdbdb;
     font-size: 1.6em;
     padding: .8em .5em;
     border-radius: 2px;
 }
-.register_input[type="text"]:focus,
-.register_input[type="password"]:focus {
+.login_input[type="text"]:focus,
+.login_input[type="password"]:focus {
     background: #fff
 }
-.register_span {
+.login_span {
     display:block;
     background: #F9A5A5;
     padding: 2px 5px;
     color: #666;
 }
-.register_input[type="submit"] {
+.login_input[type="submit"] {
     background: rgba(148,186,101,0.7);
     box-shadow: 0 3px 0 0 darken(rgba(148,186,101,0.7), 10%);
     border-radius: 2px;
@@ -68,9 +68,13 @@ button{
     padding: .8em 0;
     text-shadow: 0 1px #68B25B;
 }
-.register_input[type="submit"]:hover {
+.login_input[type="submit"]:hover {
     background: rgba(148,175,101,1);
     text-shadow:0 1px 3px darken(rgba(148,186,101,0.7), 30%);
 }
-
-
+#route_to_register_div {
+    margin: 0 0 3em 0;
+    position: relative;
+    padding-top: 7px;
+    text-align: center;
+}
