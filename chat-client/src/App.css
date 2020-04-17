@@ -19,3 +19,118 @@ body {
   display: grid;
   place-items: center;
 }
+
+#chat-container {
+  display: grid;
+  grid:
+      'search-container chat-title' 71px
+      'conversation-list chat-message-list' 1fr
+      'new-message-container chat-form' 78px
+      /275px 1fr;
+  min-width: 800px;
+  max-width: 1000px;
+  max-height: 800px;
+  width: 100%;
+  height: 95vh;
+  background: #ffffff;
+  box-shadow: 0 0 1em #222;
+  border-radius: 2px;
+}
+
+#search-container,
+#conversation-list,
+#new-message-container {
+  background: #0048AA;
+}
+
+#search-container {
+  display: grid;
+  align-items: center;
+  padding: 0 20px;
+  grid-area: search-container;
+  border-radius: 2px 0 0 0;
+  box-shadow: 0 1px 3px -1px rgba(0, 0, 0, 0.75);
+  z-index: 1;
+}
+
+#search-container input {
+  color: #222;
+  outline: none;
+  font-weight: bold;
+  border-radius: 2px;
+  height: 30px;
+  border: 0;
+  padding-left: 20px;
+  padding-right: 20px;
+  font-size: 1.4rem;
+}
+
+#search-container input::placeholder {
+  color: #ccc;
+  font-weight: bold;
+}
+
+#conversation-list {
+  grid-area: conversation-list;
+  overflow-y: scroll;
+}
+
+#new-message-container {
+  grid-area: new-message-container;
+
+  border-top: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 0 0 0 2px;
+}
+
+#chat-title,
+#chat-form {
+  background: #eee;
+}
+
+#chat-title {
+  display: grid;
+  grid: 36px / 1fr 36px;
+  align-items: center;
+  align-content: center;
+  grid-area: chat-title;
+  color: #0048AA;
+  font-weight: bold;
+  font-size: 2.0rem;
+  border-radius: 0 2px 0 0;
+  box-shadow: 0 1px 3px -1px rgba(0, 0, 0, 0.75);
+  padding: 0 20px;
+}
+
+#chat-message-list {
+  grid-area: chat-message-list;
+  display: flex;
+  flex-direction: column-reverse;
+  padding: 0 20px;
+  overflow-y: scroll;
+}
+
+#chat-form {
+  display: grid;
+  grid: 51px /  1fr;
+  align-content: center;
+  align-items: center;
+  grid-gap: 15px;
+  grid-area: chat-form;
+  border-radius: 0 0 2px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.25);
+  padding-left: 42px;
+  padding-right: 22px;
+}
+
+#chat-form input {
+  outline: none;
+  padding: 15px;
+  border: 2px solid #dddddd;
+  color: #330;
+  border-radius: 6px;
+  font-size: 1.4rem;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
