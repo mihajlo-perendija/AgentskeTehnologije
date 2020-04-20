@@ -22,14 +22,49 @@ class Register extends Component {
 
     onSubmit = (e) => {
         e.preventDefault();
-        this.setState({ submitted: true }, this.validateInput);
+        this.setState({ submitted: true }, this.sendRegisterRequest);
     }
 
-    validateInput() {
+    sendRegisterRequest = () => {
+        this.validateInput(() => {
+            if (this.state.usernameAlertHidden && this.state.passwordAlertHidden && this.state.confirmPasswordAlertHidden) {
+
+                const requestOptions = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: this.state.username,
+                        password: this.state.password
+                    })
+                };
+                fetch('rest/chat/users/register', requestOptions) // http://localhost:8080/
+                    .then(async response => {
+                        const data = await response.json();
+
+                        console.log(data);
+
+                        // check for error response
+                        if (!response.ok) {
+                            // get error message from body or default to response status
+                            const error = (data && data.message) || response.status;
+                            return Promise.reject(error);
+                        }
+                        alert("Registration successful");
+                    })
+                    .catch(error => {
+                        alert(error.text);
+                    });
+            }
+        });
+    }
+
+    validateInput(proceed) {
         if (this.state.submitted) {
-            this.usernameValid() ? this.setState({ usernameAlertHidden: true }) : this.setState({ usernameAlertHidden: false });
-            this.passwordValid() ? this.setState({ passwordAlertHidden: true }) : this.setState({ passwordAlertHidden: false });
-            this.confirmPasswordValid() ? this.setState({ confirmPasswordAlertHidden: true }) : this.setState({ confirmPasswordAlertHidden: false });
+            this.setState({
+                usernameAlertHidden: this.usernameValid(),
+                passwordAlertHidden: this.passwordValid(),
+                confirmPasswordAlertHidden: this.confirmPasswordValid()
+            }, proceed);
         }
     }
 
