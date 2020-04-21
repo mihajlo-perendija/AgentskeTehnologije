@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { Redirect } from 'react-router-dom';
 import './Register.css';
 
 class Register extends Component {
@@ -11,7 +12,8 @@ class Register extends Component {
             submitted: false,
             usernameAlertHidden: true,
             passwordAlertHidden: true,
-            confirmPasswordAlertHidden: true
+            confirmPasswordAlertHidden: true,
+            registered: false
         }
     }
 
@@ -22,14 +24,47 @@ class Register extends Component {
 
     onSubmit = (e) => {
         e.preventDefault();
-        this.setState({ submitted: true }, this.validateInput);
+        this.setState({ submitted: true }, this.sendRegisterRequest);
     }
 
-    validateInput() {
+    sendRegisterRequest = () => {
+        this.validateInput(() => {
+            if (this.state.usernameAlertHidden && this.state.passwordAlertHidden && this.state.confirmPasswordAlertHidden) {
+
+                const requestOptions = {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({
+                        username: this.state.username,
+                        password: this.state.password
+                    })
+                };
+                const url = process.env.NODE_ENV === 'production' ? "rest/chat/users/register" : "http://localhost:8080/ChatWar/rest/chat/users/register";
+
+                fetch(url, requestOptions)
+                    .then((response) => {
+                        if (!response.ok) {
+                            alert("Username already exists")
+                        }
+                        else {
+                            alert("Successfuly registered");
+                            this.setState({ registered: true });
+                        }
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                    });
+            }
+        });
+    }
+
+    validateInput(proceedCallback) {
         if (this.state.submitted) {
-            this.usernameValid() ? this.setState({ usernameAlertHidden: true }) : this.setState({ usernameAlertHidden: false });
-            this.passwordValid() ? this.setState({ passwordAlertHidden: true }) : this.setState({ passwordAlertHidden: false });
-            this.confirmPasswordValid() ? this.setState({ confirmPasswordAlertHidden: true }) : this.setState({ confirmPasswordAlertHidden: false });
+            this.setState({
+                usernameAlertHidden: this.usernameValid(),
+                passwordAlertHidden: this.passwordValid(),
+                confirmPasswordAlertHidden: this.confirmPasswordValid()
+            }, proceedCallback);
         }
     }
 
@@ -46,6 +81,10 @@ class Register extends Component {
     }
 
     render() {
+        if (this.state.registered === true) {
+            return <Redirect to='/login' />
+        }
+
         return (
             <div >
                 <form onSubmit={this.onSubmit} id="register_form">
