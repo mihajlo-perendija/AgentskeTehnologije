@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { Link } from 'react-router-dom'
 import './Login.css';
 
 class Login extends Component {
@@ -68,7 +69,8 @@ class Login extends Component {
                         <input className="login_input" type="submit" value="Sign In" id="submit"  />
                     </p>
                     <div id="route_to_register_div" >
-                        <h2>Don't have an account? <a href="../register">Register</a> </h2>
+                        <h2>Don't have an account? <Link to="/register">Register</Link>  </h2>
+                        {/* <a href="./register">Register</a> */}
                     </div>
                 </form>
             </div>

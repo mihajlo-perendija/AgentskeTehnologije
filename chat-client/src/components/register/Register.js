@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import {Redirect} from 'react-router-dom';
 import './Register.css';
 
 class Register extends Component {
@@ -11,7 +12,8 @@ class Register extends Component {
             submitted: false,
             usernameAlertHidden: true,
             passwordAlertHidden: true,
-            confirmPasswordAlertHidden: true
+            confirmPasswordAlertHidden: true,
+            registered: false
         }
     }
 
@@ -31,28 +33,26 @@ class Register extends Component {
 
                 const requestOptions = {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'content-type': 'application/json' },
                     body: JSON.stringify({
                         username: this.state.username,
                         password: this.state.password
                     })
                 };
-                fetch('rest/chat/users/register', requestOptions) // http://localhost:8080/
-                    .then(async response => {
-                        const data = await response.json();
+                const url = process.env.NODE_ENV === 'production' ? "rest/chat/users/register" : "http://localhost:8080/ChatWar/rest/chat/users/register";
 
-                        console.log(data);
-
-                        // check for error response
+                fetch(url, requestOptions)
+                    .then((response) => {
                         if (!response.ok) {
-                            // get error message from body or default to response status
-                            const error = (data && data.message) || response.status;
-                            return Promise.reject(error);
+                            alert("Invalid username or password")
                         }
-                        alert("Registration successful");
+                        else {
+                            alert("Successfuly registered");
+                            this.setState({registered: true});
+                        }
                     })
-                    .catch(error => {
-                        alert(error.text);
+                    .catch((error) => {
+                        console.log(error);
                     });
             }
         });
@@ -81,6 +81,10 @@ class Register extends Component {
     }
 
     render() {
+        if (this.state.registered === true) {
+            return <Redirect to='/login' />
+          }
+
         return (
             <div >
                 <form onSubmit={this.onSubmit} id="register_form">

@@ -1,6 +1,7 @@
 package beans;
 
 import javax.annotation.Resource;
+import javax.annotation.security.PermitAll;
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
@@ -70,11 +71,11 @@ public class ChatBean {
 	public Response register(User user) {
 		User check = data.getRegisteredUsers().get(user.getUsername());
 		if (check != null) {
-			return Response.status(Response.Status.BAD_REQUEST).header("Access-Control-Allow-Origin", "*").entity("Username already exists").build();
+			return Response.status(Response.Status.BAD_REQUEST).entity("Username already exists").build();
 		}
 		
 		data.getRegisteredUsers().put(user.getUsername(), user);		
-		return Response.status(Response.Status.OK).header("Access-Control-Allow-Origin", "*").build();
+		return Response.status(Response.Status.OK).build();
 	}
 	
 	@POST
@@ -89,18 +90,6 @@ public class ChatBean {
 		
 		data.getLoggedInUsers().put(user.getUsername(), user);		
 		user.setPassword(null);
-		return Response.status(Response.Status.OK).entity(user).header("Access-Control-Allow-Origin", "*").build();
-	}
-	
-	@OPTIONS
-	@Path("{path : .*}")
-	public Response options() {
-	    return Response.ok("")
-	            .header("Access-Control-Allow-Origin", "*")
-	            .header("Access-Control-Allow-Headers", "origin, content-type, accept, authorization")
-	            .header("Access-Control-Allow-Credentials", "true")
-	            .header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD")
-	            .header("Access-Control-Max-Age", "1209600")
-	            .build();
+		return Response.status(Response.Status.OK).entity(user).build();
 	}
 }
