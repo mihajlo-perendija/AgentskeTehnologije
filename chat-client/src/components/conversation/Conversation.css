@@ -24,6 +24,11 @@
     color: #777777;
 }
 
+.message-username {
+    font-size: 1.3rem;
+    color: #777777;
+}
+
 .my-message .message-text {
     background: #0048AA;
     color: #eee;

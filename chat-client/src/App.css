@@ -25,7 +25,7 @@ body {
   grid:
       'search-container chat-title' 71px
       'conversation-list chat-message-list' 1fr
-      'new-message-container chat-form' 78px
+      'lower-left-container chat-form' 78px
       /275px 1fr;
   min-width: 800px;
   max-width: 1000px;
@@ -39,13 +39,15 @@ body {
 
 #search-container,
 #conversation-list,
-#new-message-container {
+#lower-left-container {
   background: #0048AA;
 }
 
 #search-container {
   display: grid;
+  grid: 51px / 1fr;
   align-items: center;
+  align-content: center;
   padding: 0 20px;
   grid-area: search-container;
   border-radius: 2px 0 0 0;
@@ -53,21 +55,23 @@ body {
   z-index: 1;
 }
 
-#search-container input {
-  color: #222;
-  outline: none;
-  font-weight: bold;
+.users-button {
+  width: 80px;
+  background: #eee;
+  box-shadow: 0 3px 0 0 darken(rgba(148,186,101,0.7), 10%);
   border-radius: 2px;
-  height: 30px;
-  border: 0;
-  padding-left: 20px;
-  padding-right: 20px;
-  font-size: 1.4rem;
+  border: none;
+  color: #111;
+  cursor: pointer;
+  font-size: 2em;
+  line-height: 0.7em;
+  outline: none;
+  padding: .8em 0;
 }
 
-#search-container input::placeholder {
-  color: #ccc;
-  font-weight: bold;
+.users-button:hover {
+  background: rgba(148,175,101,1);
+  text-shadow:0 1px 3px darken(rgba(148,186,101,0.7), 30%);
 }
 
 #conversation-list {
@@ -75,11 +79,44 @@ body {
   overflow-y: scroll;
 }
 
-#new-message-container {
-  grid-area: new-message-container;
-
+#lower-left-container {
+  grid-area: lower-left-container;
   border-top: 1px solid rgba(0, 0, 0, 0.25);
   border-radius: 0 0 0 2px;
+  display: grid;
+  align-items: center;
+  align-content: center;
+  padding: 0 20px;
+  box-shadow: 0 1px 3px -1px rgba(0, 0, 0, 0.75);
+  z-index: 1;
+}
+
+.buttons-div {
+  display: inline-block;
+  align-items: center;
+  align-content: center;
+  text-align: center;
+}
+
+.button-link {
+  display: inline-block;
+  width: 80px;
+  background: #eee;
+  box-shadow: 0 3px 0 0 darken(rgba(148,186,101,0.7), 10%);
+  border-radius: 2px;
+  border: none;
+  color: #111;
+  cursor: pointer;
+  font-size: 2em;
+  line-height: 0.7em;
+  outline: none;
+  padding: .8em 0;
+  text-decoration: none;
+}
+
+.button-link:hover {
+  background: rgba(148,175,101,1);
+  text-shadow:0 1px 3px darken(rgba(148,186,101,0.7), 30%);
 }
 
 #chat-title,

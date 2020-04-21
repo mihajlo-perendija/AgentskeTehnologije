@@ -1,15 +1,22 @@
 import React, { Component } from 'react';
-import { Link } from 'react-router-dom'
+import { Link, Redirect } from 'react-router-dom'
 import './Login.css';
+import PropTypes from 'prop-types'
 
 class Login extends Component {
-    state = {
-        username: "",
-        password: "",
-        submitted: false,
-        usernameAlertHidden: true,
-        passwordAlertHidden: true,
+    constructor(props) {
+        super(props);
+        this.state = {
+            username: "",
+            password: "",
+            submitted: false,
+            usernameAlertHidden: true,
+            passwordAlertHidden: true,
+            loggedInUser: false,
+        };
+        //this.setLoggedInUser = this.setLoggedInUser.bind(this);
     }
+    
 
     onChange = (e) => {
         this.setState({ [e.target.name]: e.target.value }, this.validateInput);
@@ -17,13 +24,51 @@ class Login extends Component {
 
     onSubmit = (e) => {
         e.preventDefault();
-        this.setState({ submitted: true }, this.validateInput);
+        this.setState({ submitted: true }, this.sendLoginRequest);
     }
 
-    validateInput() {
+    sendLoginRequest = () => {
+        this.validateInput(() => {
+            if (this.state.usernameAlertHidden && this.state.passwordAlertHidden) {
+
+                const requestOptions = {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({
+                        username: this.state.username,
+                        password: this.state.password
+                    })
+                };
+                const url = process.env.NODE_ENV === 'production' ? "rest/chat/users/login" : "http://localhost:8080/ChatWar/rest/chat/users/login";
+
+                fetch(url, requestOptions)
+                    .then((response) => {
+                        if (!response.ok) {
+                            alert("Invalid username or password")
+                        }
+                        else {
+                            alert("Successfuly logged in");
+                            //this.setState({loggedIn: true});
+                            return response.json();
+                        }
+                    })
+                    .then((data) => {
+                        if (data?.username)
+                            this.setState({loggedInUser: data});
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                    });
+            }
+        });
+    }
+
+    validateInput(proceedCallback) {
         if (this.state.submitted) {
-            this.usernameValid() ? this.setState({ usernameAlertHidden: true }) : this.setState({ usernameAlertHidden: false });
-            this.passwordValid() ? this.setState({ passwordAlertHidden: true }) : this.setState({ passwordAlertHidden: false });
+            this.setState({
+                usernameAlertHidden: this.usernameValid(),
+                passwordAlertHidden: this.passwordValid(),
+            }, proceedCallback);
         }
     }
 
@@ -32,10 +77,15 @@ class Login extends Component {
     }
 
     passwordValid() {
-        return this.state.password.length > 5 ? true : false;
+        return this.state.password.length > 5? true : false;
     }
 
     render() {
+        if (this.state.loggedInUser ) {
+            this.props.setLoggedInUser(this.state.loggedInUser);
+            return <Redirect to='/chat' />
+            //this.props.history.push('/chat')
+        }
         return (
             <div >
                 <form onSubmit={this.onSubmit} id="login_form">
@@ -76,6 +126,10 @@ class Login extends Component {
             </div>
         );
     }
+}
+
+Login.propTypes = {
+    setLoggedInUser: PropTypes.func.isRequired,
 }
 
 export default Login;

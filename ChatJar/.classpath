@@ -12,5 +12,8 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
+	<classpathentry kind="lib" path="lib/jackson-annotations-2.11.0.rc1.jar"/>
+	<classpathentry kind="lib" path="lib/jackson-core-2.11.0.rc1.jar"/>
+	<classpathentry kind="lib" path="lib/jackson-databind-2.11.0.rc1.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

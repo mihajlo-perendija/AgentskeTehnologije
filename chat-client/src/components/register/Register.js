@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import {Redirect} from 'react-router-dom';
+import { Redirect } from 'react-router-dom';
 import './Register.css';
 
 class Register extends Component {
@@ -44,11 +44,11 @@ class Register extends Component {
                 fetch(url, requestOptions)
                     .then((response) => {
                         if (!response.ok) {
-                            alert("Invalid username or password")
+                            alert("Username already exists")
                         }
                         else {
                             alert("Successfuly registered");
-                            this.setState({registered: true});
+                            this.setState({ registered: true });
                         }
                     })
                     .catch((error) => {
@@ -58,13 +58,13 @@ class Register extends Component {
         });
     }
 
-    validateInput(proceed) {
+    validateInput(proceedCallback) {
         if (this.state.submitted) {
             this.setState({
                 usernameAlertHidden: this.usernameValid(),
                 passwordAlertHidden: this.passwordValid(),
                 confirmPasswordAlertHidden: this.confirmPasswordValid()
-            }, proceed);
+            }, proceedCallback);
         }
     }
 
@@ -83,7 +83,7 @@ class Register extends Component {
     render() {
         if (this.state.registered === true) {
             return <Redirect to='/login' />
-          }
+        }
 
         return (
             <div >
