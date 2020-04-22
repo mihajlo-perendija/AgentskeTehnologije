@@ -98,7 +98,6 @@ public class ChatBean {
 	@Path("/users/loggedIn/{username}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response logout(@PathParam("username") String username) {
-		System.out.println(username);
 		User checkLoggedIn = data.getLoggedInUsers().get(username);
 		if (checkLoggedIn == null ) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Not logged in").build();
