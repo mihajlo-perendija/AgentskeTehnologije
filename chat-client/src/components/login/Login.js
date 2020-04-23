@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Link, Redirect } from 'react-router-dom'
+import { Link, withRouter } from 'react-router-dom'
 import './Login.css';
 import PropTypes from 'prop-types'
 
@@ -12,11 +12,8 @@ class Login extends Component {
             submitted: false,
             usernameAlertHidden: true,
             passwordAlertHidden: true,
-            loggedInUser: false,
         };
-        //this.setLoggedInUser = this.setLoggedInUser.bind(this);
     }
-    
 
     onChange = (e) => {
         this.setState({ [e.target.name]: e.target.value }, this.validateInput);
@@ -48,13 +45,14 @@ class Login extends Component {
                         }
                         else {
                             alert("Successfuly logged in");
-                            //this.setState({loggedIn: true});
                             return response.json();
                         }
                     })
                     .then((data) => {
-                        if (data?.username)
-                            this.setState({loggedInUser: data});
+                        if (data?.username) {
+                            this.props.setLoggedInUser(data);
+                            this.props.history.push('/chat');
+                        }
                     })
                     .catch((error) => {
                         console.log(error);
@@ -73,38 +71,33 @@ class Login extends Component {
     }
 
     usernameValid() {
-        return this.state.username.length > 3? true : false;
+        return this.state.username.length > 3 ? true : false;
     }
 
     passwordValid() {
-        return this.state.password.length > 5? true : false;
+        return this.state.password.length > 5 ? true : false;
     }
 
     render() {
-        if (this.state.loggedInUser ) {
-            this.props.setLoggedInUser(this.state.loggedInUser);
-            return <Redirect to='/chat' />
-            //this.props.history.push('/chat')
-        }
         return (
             <div >
                 <form onSubmit={this.onSubmit} id="login_form">
                     <h2 id="login_h2">Sign In</h2>
                     <p className="login_p">
                         <input
-                        className="login_input"
+                            className="login_input"
                             type="text"
                             name="username"
                             placeholder="Username"
                             value={this.state.username}
                             onChange={this.onChange}
                         />
-                        <span className="login_span" style={{visibility: this.state.usernameAlertHidden ? 'hidden' : 'visible' }} 
+                        <span className="login_span" style={{ visibility: this.state.usernameAlertHidden ? 'hidden' : 'visible' }}
                         >Invalid username</span>
                     </p>
                     <p className="login_p">
                         <input
-                        className="login_input"
+                            className="login_input"
                             type="password"
                             name="password"
                             placeholder="Password"
@@ -112,15 +105,14 @@ class Login extends Component {
 
                             onChange={this.onChange}
                         />
-                        <span className="login_span" style={{visibility: this.state.passwordAlertHidden ? 'hidden' : 'visible' }} 
+                        <span className="login_span" style={{ visibility: this.state.passwordAlertHidden ? 'hidden' : 'visible' }}
                         >Invalid password</span>
                     </p>
                     <p className="login_p">
-                        <input className="login_input" type="submit" value="Sign In" id="submit"  />
+                        <input className="login_input" type="submit" value="Sign In" id="submit" />
                     </p>
                     <div id="route_to_register_div" >
                         <h2>Don't have an account? <Link to="/register">Register</Link>  </h2>
-                        {/* <a href="./register">Register</a> */}
                     </div>
                 </form>
             </div>
@@ -130,6 +122,9 @@ class Login extends Component {
 
 Login.propTypes = {
     setLoggedInUser: PropTypes.func.isRequired,
+    match: PropTypes.object.isRequired,
+    location: PropTypes.object.isRequired,
+    history: PropTypes.object.isRequired
 }
 
-export default Login;
+export default withRouter(Login);
