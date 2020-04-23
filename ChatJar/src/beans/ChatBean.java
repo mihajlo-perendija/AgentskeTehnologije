@@ -71,6 +71,8 @@ public class ChatBean {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Invalid username or password").build();
 		}
 		
+		// TODO: Cookie?
+		
 		data.getLoggedInUsers().put(checkRegistered.getUsername(), checkRegistered);
 		
 		// Log ------------
@@ -113,6 +115,8 @@ public class ChatBean {
 		System.out.println("----------------");
 		// -----------------
 		
+		// TODO: websocket
+		
 		return Response.status(Response.Status.OK).entity(retVal).build();
 	}
 	
@@ -144,10 +148,7 @@ public class ChatBean {
 		}
 		if (!data.getLoggedInUsers().containsKey(message.getSender())){
 			return Response.status(Response.Status.BAD_REQUEST).entity("Not logged in").build();
-		}		
-		//for (User user: data.getRegisteredUsers().values()) {
-		//	user.getMessages().add(message);
-		//}
+		}
 		
 		try {
 			QueueConnection connection = (QueueConnection) connectionFactory.createConnection("guest", "guest.guest.1");
@@ -179,13 +180,11 @@ public class ChatBean {
 		if (sender == null){
 			return Response.status(Response.Status.BAD_REQUEST).entity("Not logged in").build();
 		}
-		//sender.getMessages().add(message);
 
 		User reciever = data.getRegisteredUsers().get(message.getReceiver());
 		if (reciever == null) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Invalid reciever").build();
 		}
-		//reciever.getMessages().add(message);
 		
 		// Log ------------
 		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText() + " time: " + message.getTimeStamp() + " TO: " + message.getReceiver() + " }");
