@@ -35,7 +35,7 @@ class Conversations extends Component {
 
 Conversations.propTypes = {
     users: PropTypes.array.isRequired,
-    selectedUser: PropTypes.object.isRequired,
+    selectedUser: PropTypes.object,
 }
 
 export default Conversations;

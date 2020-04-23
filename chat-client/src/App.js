@@ -7,31 +7,20 @@ import Login from './components/login/Login.js'
 import Conversations from './components/conversations/Conversations.js'
 import Conversation from './components/conversation/Conversation.js'
 
+const wsHost = process.env.NODE_ENV === 'production' ? "ws://localhost:8080/ChatWar/ws/" : "ws://localhost:8080/ChatWar/ws/";
+
 class App extends Component {
+
     state = {
         loggedInUser: null,
         users: [],
-        selectedUser: {
-            // id: 2,
-            // username: "Vladimir Iljic Uljanov Lenjin",
-            // messages: [{
-            //     sender: "Vladimir Iljic Uljanov Lenjin",
-            //     reciever: "Mihajlo Perendija",
-            //     text: "Привет, товарищ!",
-            //     date: new Date(1587148000000)
-            // },
-            // {
-            //     sender: "Mihajlo Perendija",
-            //     reciever: "Vladimir Iljic Uljanov Lenjin",
-            //     text: "Поздрав друже!",
-            //     date: new Date(1587148716000)
-            // },
-            // ]
-
-        },
+        selectedUser: {},
         text: "",
-        visibleMessages: []
+        visibleMessages: [],
+
     }
+
+    websocket;
 
     selectConversation = (user) => {
         this.setState({
@@ -41,25 +30,85 @@ class App extends Component {
     }
 
     getConversationMessages = () => {
+        let messages;
         if (this.state.selectedUser.username === "ALL") {
-            let messages = this.state.loggedInUser.messages
-                .filter(message => message.reciever === "ALL");
-
-            this.setState({ visibleMessages: messages });
+            messages = this.state.loggedInUser.messages
+                .filter(message => message.receiver === "ALL");
         } else {
-            let messages = this.state.loggedInUser.messages
+            messages = this.state.loggedInUser.messages
                 .filter(message => (message.sender === this.state.selectedUser.username
-                    && message.reciever === this.state.loggedInUser.username)
+                    && message.receiver === this.state.loggedInUser.username)
                     ||
                     (message.sender === this.state.loggedInUser.username
-                    && message.reciever === this.state.selectedUser.username));
+                        && message.receiver === this.state.selectedUser.username));
+        }
 
-            this.setState({ visibleMessages: messages });
+        this.setState({ visibleMessages: messages });
+    }
+
+    getUserMessages = () => {
+        const url = process.env.NODE_ENV === 'production' ? `rest/chat/messages/${this.state.loggedInUser.username}` : `http://localhost:8080/ChatWar/rest/chat/messages/${this.state.loggedInUser.username}`;
+        fetch(url, { method: "GET" })
+            .then((response) => {
+                if (!response.ok) {
+                    alert("Error");
+                }
+                else {
+                    return response.json();                    
+                }
+            })
+            .then((data) => {
+                if (!data){
+                    data = [];
+                }
+                let user = this.state.loggedInUser;
+                user.messages = data;
+                this.setState({
+                    loggedInUser: user,
+                    text: ""
+                });
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+    }
+
+    getAllDataOnLogin = () => {
+        this.getUserMessages();
+        this.getOnlineUsers();
+
+        this.websocket = new WebSocket(wsHost + this.state.loggedInUser.username);
+
+
+        this.websocket.onopen = () => {
+            console.log('connected')
+        }
+
+        this.websocket.onmessage = evt => {
+            // on receiving a message, add it to the list of messages
+            const message = JSON.parse(evt.data)
+            let messages = [...this.state.loggedInUser.messages, message]
+            let user = this.state.loggedInUser;
+            user.messages = messages;
+            this.setState({
+                loggedInUser: user,
+                text: ""
+            }, this.getConversationMessages);
+            //this.addMessage(message)
+        }
+
+        this.websocket.onclose = () => {
+            console.log('disconnected')
+            this.setState({
+                websocket: new WebSocket(wsHost + this.state.loggedInUser.username),
+            })
         }
     }
 
     setLoggedInUser = (user) => {
-        this.setState({ loggedInUser: user });
+        this.setState({ loggedInUser: user }, () => {
+            this.getAllDataOnLogin();
+        });
     }
 
     logout = () => {
@@ -119,14 +168,15 @@ class App extends Component {
             });
     }
 
-
-
     onMessageChange = (e) => {
         this.setState({ text: e.target.value });
     }
 
     onSendMessage = (e) => {
         e.preventDefault();
+        if (!this.state.loggedInUser){
+            return;
+        }
         let type;
         if (this.state.selectedUser.username === "ALL") {
             type = "all";
@@ -135,7 +185,7 @@ class App extends Component {
         }
         let message = {
             sender: this.state.loggedInUser.username,
-            reciever: this.state.selectedUser.username,
+            receiver: this.state.selectedUser.username,
             text: this.state.text,
             timeStamp: (new Date()).getTime()
         }
@@ -151,15 +201,6 @@ class App extends Component {
             .then((response) => {
                 if (!response.ok) {
                     alert("Error")
-                }
-                else {
-                    let messages = [...this.state.loggedInUser.messages, message]
-                    let user = this.state.loggedInUser;
-                    user.messages = messages;
-                    this.setState({
-                        loggedInUser: user,
-                        text: ""
-                    }, this.getConversationMessages);
                 }
             })
             .catch((error) => {

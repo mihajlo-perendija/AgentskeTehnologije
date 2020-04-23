@@ -3,6 +3,7 @@
 	<name>ChatJar</name>
 	<comment></comment>
 	<projects>
+		<project>ChatWar</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

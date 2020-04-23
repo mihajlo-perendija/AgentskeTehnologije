@@ -3,9 +3,17 @@ package beans;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import javax.annotation.Resource;
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
+import javax.jms.ConnectionFactory;
+import javax.jms.ObjectMessage;
+import javax.jms.Queue;
+import javax.jms.QueueConnection;
+import javax.jms.QueueSender;
+import javax.jms.QueueSession;
+import javax.jms.Session;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -16,6 +24,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import messages.AgentManager;
 import model.Message;
 import model.User;
 
@@ -24,38 +33,15 @@ import model.User;
 @LocalBean
 public class ChatBean {
 	
-//	@Resource(mappedName = "java:/ConnectionFactory")
-//	private ConnectionFactory connectionFactory;
-//	@Resource(mappedName = "java:jboss/exported/jms/queue/mojQueue")
-//	private Queue queue;
-//	
-//	@GET
-//	@Path("/test")
-//	@Produces(MediaType.TEXT_PLAIN)
-//	public String test() {
-//		return "OK";
-//	}
-//	
-//	@POST
-//	@Path("/post/{text}")
-//	@Produces(MediaType.TEXT_PLAIN)
-//	public String post(@PathParam("text") String text) {
-//		try {
-//			QueueConnection connection = (QueueConnection) connectionFactory.createConnection("guest", "guest.guest.1");
-//			QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
-//			QueueSender sender = session.createSender(queue);
-//			
-//			TextMessage msg = session.createTextMessage();
-//			msg.setText(text);
-//			sender.send(msg);
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//		return "OK";
-//	}
+	@Resource(mappedName = "java:/ConnectionFactory")
+	private ConnectionFactory connectionFactory;
+	@Resource(mappedName = "java:jboss/exported/jms/queue/mojQueue")
+	private Queue queue;
 	
 	@EJB
 	private DataBean data;
+	@EJB
+	private AgentManager agents;
 	
 	@POST
 	@Path("/users/register")
@@ -68,7 +54,7 @@ public class ChatBean {
 		}
 		
 		data.getRegisteredUsers().put(user.getUsername(), user);
-		
+		agents.createNewAgent(user.getUsername(), user);
 		// Log ------------
 		System.out.println("User { " + user.getUsername() + " } registered");
 		// -----------------
@@ -153,18 +139,30 @@ public class ChatBean {
 	@Path("/messages/all")
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response sendMessageAll(Message message) {
-		if (message == null || message.getSender() == null || !message.getReciever().equals("ALL")) {
+		if (message == null || message.getSender() == null || !message.getReceiver().equals("ALL")) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Invalid message").build();
 		}
 		if (!data.getLoggedInUsers().containsKey(message.getSender())){
 			return Response.status(Response.Status.BAD_REQUEST).entity("Not logged in").build();
 		}		
-		for (User user: data.getRegisteredUsers().values()) {
-			user.getMessages().add(message);
+		//for (User user: data.getRegisteredUsers().values()) {
+		//	user.getMessages().add(message);
+		//}
+		
+		try {
+			QueueConnection connection = (QueueConnection) connectionFactory.createConnection("guest", "guest.guest.1");
+			QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
+			QueueSender msgSender = session.createSender(queue);
+			
+			ObjectMessage msg = session.createObjectMessage();
+			msg.setObject(message);
+			msgSender.send(msg);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		
 		// Log ------------
-		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText() + " time: " + message.getTimeStamp() + " TO: " + message.getReciever() + " }");
+		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText() + " time: " + message.getTimeStamp() + " TO: " + message.getReceiver() + " }");
 		// -----------------
 		
 		return Response.status(Response.Status.OK).build();
@@ -174,24 +172,36 @@ public class ChatBean {
 	@Path("/messages/user")
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response sendMessageUser(Message message) {
-		if (message == null || message.getSender() == null || message.getReciever() == null) {
+		if (message == null || message.getSender() == null || message.getReceiver() == null) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Invalid message").build();
 		}
 		User sender = data.getLoggedInUsers().get(message.getSender());
 		if (sender == null){
 			return Response.status(Response.Status.BAD_REQUEST).entity("Not logged in").build();
 		}
-		sender.getMessages().add(message);
+		//sender.getMessages().add(message);
 
-		User reciever = data.getRegisteredUsers().get(message.getReciever());
+		User reciever = data.getRegisteredUsers().get(message.getReceiver());
 		if (reciever == null) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Invalid reciever").build();
 		}
-		reciever.getMessages().add(message);
+		//reciever.getMessages().add(message);
 		
 		// Log ------------
-		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText() + " time: " + message.getTimeStamp() + " TO: " + message.getReciever() + " }");
+		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText() + " time: " + message.getTimeStamp() + " TO: " + message.getReceiver() + " }");
 		// -----------------
+		
+		try {
+			QueueConnection connection = (QueueConnection) connectionFactory.createConnection("guest", "guest.guest.1");
+			QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
+			QueueSender msgSender = session.createSender(queue);
+			
+			ObjectMessage msg = session.createObjectMessage();
+			msg.setObject(message);
+			msgSender.send(msg);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		return Response.status(Response.Status.OK).build();
 	}
@@ -199,6 +209,7 @@ public class ChatBean {
 	@GET
 	@Path("/messages/{username}")
 	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
 	public Response messages(@PathParam("username") String username) {
 		User user = data.getRegisteredUsers().get(username);
 		if (user == null){
@@ -208,11 +219,11 @@ public class ChatBean {
 		// Log ------------
 		System.out.println( username + " messages: ");
 		for(Message message: messages) {
-			System.out.println("{ sender:" + message.getSender() + " text: " + message.getText() + " time: " + message.getTimeStamp() + " TO: " + message.getReciever() + " }");
+			System.out.println("{ sender:" + message.getSender() + " text: " + message.getText() + " time: " + message.getTimeStamp() + " TO: " + message.getReceiver() + " }");
 		}
 		// -----------------
 		
-		return Response.status(Response.Status.OK).build();
+		return Response.status(Response.Status.OK).entity(messages).build();
 	}
 	
 }

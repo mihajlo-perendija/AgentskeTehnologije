@@ -7,7 +7,7 @@ public class Message implements Serializable{
 	private static final long serialVersionUID = 1L;
 	
 	private String sender;
-	private String reciever;
+	private String receiver;
 	private long timeStamp;
 	private String text;
 	
@@ -15,10 +15,10 @@ public class Message implements Serializable{
 		super();
 	}
 	
-	public Message(String sender, String reciever, long timeStamp, String text) {
+	public Message(String sender, String receiver, long timeStamp, String text) {
 		super();
 		this.sender = sender;
-		this.reciever = reciever;
+		this.receiver = receiver;
 		this.timeStamp = timeStamp;
 		this.text = text;
 	}
@@ -31,12 +31,12 @@ public class Message implements Serializable{
 		this.sender = sender;
 	}
 
-	public String getReciever() {
-		return reciever;
+	public String getReceiver() {
+		return receiver;
 	}
 
-	public void setReciever(String reciever) {
-		this.reciever = reciever;
+	public void setReceiver(String receiver) {
+		this.receiver = receiver;
 	}
 
 	public long getTimeStamp() {
