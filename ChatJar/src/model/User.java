@@ -14,6 +14,7 @@ public class User implements Serializable{
 	
 	private long id = IdGenerator.getNextId();
 	private String username;
+	private String host;
 	@JsonProperty(access = Access.WRITE_ONLY)
 	private String password;
 	@JsonProperty(access = Access.WRITE_ONLY)
@@ -23,11 +24,19 @@ public class User implements Serializable{
 		super();
 	}
 
-	public User(String username, String password, ArrayList<Message> messages) {
+	public User(String username, String host, String password, ArrayList<Message> messages) {
 		super();
 		this.username = username;
+		this.host = host;
 		this.password = password;
 		this.messages = messages;
+	}
+	
+	public User(String username, String host, String password) {
+		super();
+		this.username = username;
+		this.host = host;
+		this.password = password;
 	}
 	
 	public long getId() {
@@ -40,6 +49,14 @@ public class User implements Serializable{
 
 	public void setUsername(String username) {
 		this.username = username;
+	}
+
+	public String getHost() {
+		return host;
+	}
+
+	public void setHost(String host) {
+		this.host = host;
 	}
 
 	public String getPassword() {

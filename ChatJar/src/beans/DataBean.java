@@ -4,12 +4,14 @@ import java.util.HashMap;
 
 import javax.ejb.LocalBean;
 import javax.ejb.Singleton;
+import javax.ejb.Startup;
 
 import model.User;
 
 
 @Singleton
 @LocalBean
+@Startup
 public class DataBean {
 
 	private HashMap<String, User> registeredUsers;
@@ -26,5 +28,9 @@ public class DataBean {
 
 	public HashMap<String, User> getLoggedInUsers() {
 		return loggedInUsers;
+	}
+
+	public void setLoggedInUsers(HashMap<String, User> loggedInUsers) {
+		this.loggedInUsers = loggedInUsers;
 	}
 }

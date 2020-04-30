@@ -6,6 +6,7 @@ import java.util.Collection;
 import javax.annotation.Resource;
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
+import javax.ejb.Remote;
 import javax.ejb.Stateless;
 import javax.jms.ConnectionFactory;
 import javax.jms.ObjectMessage;
@@ -26,12 +27,15 @@ import javax.ws.rs.core.Response;
 
 import messages.AgentManager;
 import model.Message;
+import model.Node;
 import model.User;
+import servers.ServersRestLocal;
 
 @Stateless
 @Path("/chat")
 @LocalBean
-public class ChatBean {
+@Remote(ChatBeanRemote.class)
+public class ChatBean implements ChatBeanRemote{
 	
 	@Resource(mappedName = "java:/ConnectionFactory")
 	private ConnectionFactory connectionFactory;
@@ -42,6 +46,9 @@ public class ChatBean {
 	private DataBean data;
 	@EJB
 	private AgentManager agents;
+	@EJB
+	private ServersRestLocal serversRest;
+
 	
 	@POST
 	@Path("/users/register")
@@ -52,11 +59,18 @@ public class ChatBean {
 		if (check != null) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Username already exists").build();
 		}
+
+		Node node = serversRest.getNode();
+		System.out.println("host " + node.getAddress() + " name" + node.getAlias());
+		User registered = new User( user.getUsername(), node.getAddress(), user.getPassword());
+		System.out.println(registered.getHost());
+		data.getRegisteredUsers().put(registered.getUsername(), registered);
+		agents.createNewAgent(registered.getUsername(), registered);
 		
-		data.getRegisteredUsers().put(user.getUsername(), user);
-		agents.createNewAgent(user.getUsername(), user);
+		serversRest.informNodesNewUserRegistered(registered);
+		
 		// Log ------------
-		System.out.println("User { " + user.getUsername() + " } registered");
+		System.out.println("User { " + registered.getUsername() + " } registered");
 		// -----------------
 		return Response.status(Response.Status.OK).build();
 	}
@@ -74,6 +88,8 @@ public class ChatBean {
 		// TODO: Cookie?
 		
 		data.getLoggedInUsers().put(checkRegistered.getUsername(), checkRegistered);
+		
+		serversRest.informNodesAboutLoggedInUsers();
 		
 		// Log ------------
 		System.out.println("User { " + checkRegistered.getUsername() + " } logged IN");
@@ -93,6 +109,8 @@ public class ChatBean {
 		
 		data.getLoggedInUsers().remove(username);
 		
+		serversRest.informNodesAboutLoggedInUsers();
+
 		// Log ------------
 		System.out.println("User { " + username + " } logged OUT");
 		// -----------------
@@ -139,9 +157,7 @@ public class ChatBean {
 		return Response.status(Response.Status.OK).entity(retVal).build();
 	}
 	
-	@POST
-	@Path("/messages/all")
-	@Consumes(MediaType.APPLICATION_JSON)
+	@Override
 	public Response sendMessageAll(Message message) {
 		if (message == null || message.getSender() == null || !message.getReceiver().equals("ALL")) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Invalid message").build();
@@ -161,17 +177,17 @@ public class ChatBean {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+		String type = message.isSentOverNetwork() ? " / over network }" : "/ same host }";
+
 		// Log ------------
-		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText() + " time: " + message.getTimeStamp() + " TO: " + message.getReceiver() + " }");
+		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText()
+		+ " time: " + message.getTimeStamp() + " TO: " + message.getReceiver() +  type);
 		// -----------------
 		
 		return Response.status(Response.Status.OK).build();
 	}
 	
-	@POST
-	@Path("/messages/user")
-	@Consumes(MediaType.APPLICATION_JSON)
+	@Override
 	public Response sendMessageUser(Message message) {
 		if (message == null || message.getSender() == null || message.getReceiver() == null) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Invalid message").build();
@@ -186,8 +202,10 @@ public class ChatBean {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Invalid reciever").build();
 		}
 		
+		String type = message.isSentOverNetwork() ? " / over network }" : "/ same host }";
 		// Log ------------
-		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText() + " time: " + message.getTimeStamp() + " TO: " + message.getReceiver() + " }");
+		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText() +
+				" time: " + message.getTimeStamp() + " TO: " + message.getReceiver() + type);
 		// -----------------
 		
 		try {
