@@ -10,6 +10,7 @@ public class Message implements Serializable{
 	private String receiver;
 	private long timeStamp;
 	private String text;
+	private boolean sentOverNetwork = false;
 	
 	public Message() {
 		super();
@@ -53,5 +54,13 @@ public class Message implements Serializable{
 
 	public void setText(String text) {
 		this.text = text;
+	}
+
+	public boolean isSentOverNetwork() {
+		return sentOverNetwork;
+	}
+
+	public void setSentOverNetwork(boolean sentOverNetwork) {
+		this.sentOverNetwork = sentOverNetwork;
 	}
 }

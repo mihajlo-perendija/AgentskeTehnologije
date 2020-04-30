@@ -6,8 +6,8 @@ import java.util.Collection;
 import javax.annotation.Resource;
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
+import javax.ejb.Remote;
 import javax.ejb.Stateless;
-import javax.inject.Inject;
 import javax.jms.ConnectionFactory;
 import javax.jms.ObjectMessage;
 import javax.jms.Queue;
@@ -29,13 +29,13 @@ import messages.AgentManager;
 import model.Message;
 import model.Node;
 import model.User;
-import servers.NodeManager;
 import servers.ServersRestLocal;
 
 @Stateless
 @Path("/chat")
 @LocalBean
-public class ChatBean {
+@Remote(ChatBeanRemote.class)
+public class ChatBean implements ChatBeanRemote{
 	
 	@Resource(mappedName = "java:/ConnectionFactory")
 	private ConnectionFactory connectionFactory;
@@ -157,9 +157,7 @@ public class ChatBean {
 		return Response.status(Response.Status.OK).entity(retVal).build();
 	}
 	
-	@POST
-	@Path("/messages/all")
-	@Consumes(MediaType.APPLICATION_JSON)
+	@Override
 	public Response sendMessageAll(Message message) {
 		if (message == null || message.getSender() == null || !message.getReceiver().equals("ALL")) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Invalid message").build();
@@ -179,17 +177,17 @@ public class ChatBean {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+		String type = message.isSentOverNetwork() ? " / over network }" : "/ same host }";
+
 		// Log ------------
-		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText() + " time: " + message.getTimeStamp() + " TO: " + message.getReceiver() + " }");
+		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText()
+		+ " time: " + message.getTimeStamp() + " TO: " + message.getReceiver() +  type);
 		// -----------------
 		
 		return Response.status(Response.Status.OK).build();
 	}
 	
-	@POST
-	@Path("/messages/user")
-	@Consumes(MediaType.APPLICATION_JSON)
+	@Override
 	public Response sendMessageUser(Message message) {
 		if (message == null || message.getSender() == null || message.getReceiver() == null) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Invalid message").build();
@@ -204,8 +202,10 @@ public class ChatBean {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Invalid reciever").build();
 		}
 		
+		String type = message.isSentOverNetwork() ? " / over network }" : "/ same host }";
 		// Log ------------
-		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText() + " time: " + message.getTimeStamp() + " TO: " + message.getReceiver() + " }");
+		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText() +
+				" time: " + message.getTimeStamp() + " TO: " + message.getReceiver() + type);
 		// -----------------
 		
 		try {

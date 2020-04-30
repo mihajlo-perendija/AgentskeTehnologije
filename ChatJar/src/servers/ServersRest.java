@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import javax.ejb.EJB;
 import javax.ejb.Local;
 import javax.ejb.LocalBean;
 import javax.ejb.Remote;

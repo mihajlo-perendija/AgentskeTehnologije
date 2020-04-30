@@ -7,8 +7,6 @@ import Login from './components/login/Login.js'
 import Conversations from './components/conversations/Conversations.js'
 import Conversation from './components/conversation/Conversation.js'
 
-const wsHost = process.env.NODE_ENV === 'production' ? "ws://localhost:8080/ChatWar/ws/" : "ws://localhost:8080/ChatWar/ws/";
-
 class App extends Component {
 
     state = {
@@ -76,6 +74,16 @@ class App extends Component {
     getAllDataOnLogin = () => {
         this.getUserMessages();
         this.getOnlineUsers();
+        var loc = window.location, new_uri;
+        if (loc.protocol === "https:") {
+            new_uri = "wss:";
+        } else {
+            new_uri = "ws:";
+        }
+        new_uri += "//" + loc.host;
+        new_uri += loc.pathname + "ws/";
+        console.log(new_uri);
+        const wsHost = process.env.NODE_ENV === 'production' ? new_uri : "ws://localhost:8080/ChatWar/ws/";
 
         this.websocket = new WebSocket(wsHost + this.state.loggedInUser.username);
 

@@ -32,6 +32,9 @@ public class NodeManager {
 	
 	private String master = null;
 	private Node node = new Node();
+	
+	// Master is not in "nodes", its IP is in all nodes
+	// Preventing deleting master and health checking it
 	private List<Node> nodes = new ArrayList<Node>();
 	
 	private Timer hearthBeat = new Timer();
