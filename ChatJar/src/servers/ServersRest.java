@@ -1,22 +1,15 @@
 package servers;
 
-import java.lang.management.ManagementFactory;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.stream.IntStream;
 
-import javax.annotation.PostConstruct;
-import javax.ejb.DependsOn;
 import javax.ejb.EJB;
+import javax.ejb.Local;
+import javax.ejb.LocalBean;
 import javax.ejb.Remote;
-import javax.ejb.Singleton;
-import javax.ejb.Startup;
+import javax.ejb.Stateless;
 import javax.inject.Inject;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
 import javax.ws.rs.Path;
 
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
@@ -27,121 +20,38 @@ import beans.DataBean;
 import model.Node;
 import model.User;
 
-@Singleton
-@Startup
-@DependsOn("DataBean")
+@Stateless
+//@DependsOn("DataBean")
 @Remote(ServersRestRemote.class)
+@Local(ServersRestLocal.class)
 @Path("/connection")
-public class ServersRest implements ServersRestRemote {
+@LocalBean
+public class ServersRest implements ServersRestRemote, ServersRestLocal {
+	
+	@Inject
+	NodeManager nodeManager;
 	
 	@Inject
 	DataBean data;
-	
-	public String master = null;
-	public Node node = new Node();
-	public List<Node> nodes = new ArrayList<Node>();
-	
-	public Timer hearthBeat = new Timer();
-	
-	@PostConstruct
-	private void init() {
-		try {
-			Thread.sleep(10000);
-	        MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
-            ObjectName http = new ObjectName("jboss.as:socket-binding-group=standard-sockets,socket-binding=http");
-			
-
-			this.node.setAddress((String) mBeanServer.getAttribute(http,"boundAddress") + ":8080");
-			this.node.setAlias(System.getProperty("jboss.node.name") + ":8080");
-			
-			this.master = "192.168.0.15:8080";
-			System.out.println("MASTER ADDR: " + master + ", node name: " + this.node.getAlias() + ", node address: " + this.node.getAddress());
-			
-			if (master != null && !master.equals("") && !master.equals(this.node.getAddress())) {
-				System.out.println("Connecting to master...");
-				ResteasyClient client = new ResteasyClientBuilder().build();
-				ResteasyWebTarget rtarget = client.target("http://" + master + "/ChatWar/rest/connection");
-				ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
-				boolean test = rest.registerNode(this.node);
-				System.out.println("Node registered");
-				System.out.println("Nodes in cluster:");
-				for (Node n: this.nodes) {
-					System.out.println("Alias: " + n.getAlias() + ", Address: " + n.getAddress());
-				}
-				//this.connections.remove(this.nodeName);
-				//this.connections.add(this.master);
-				
-				hearthBeat.scheduleAtFixedRate(new TimerTask() {
-					ResteasyClient client = new ResteasyClientBuilder().build();
-
-				    @Override
-				    public void run() {
-				        for (Node n: nodes) {
-				        	try {
-				        		ResteasyWebTarget rtarget = client.target("http://" + n.getAddress() + "/ChatWar/rest/connection");
-								ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
-								String alias = rest.getNodeHealth();
-				        	} catch (Exception e) {
-				        		try {
-					        		ResteasyWebTarget rtarget = client.target("http://" + n.getAddress() + "/ChatWar/rest/connection");
-									ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
-									String alias = rest.getNodeHealth();
-					        	} catch (Exception e2) {
-					    			System.out.println("Node: " + n.getAlias() + " not responding... Deleting node from cluster...");
-					        		for (Node n1: nodes) {
-					        			ResteasyWebTarget rtarget = client.target("http://" + n1.getAddress() + "/ChatWar/rest/connection");
-					    				ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
-					    				rest.deleteNode(n.getAlias());
-					        		}
-								}
-							}
-				        }
-				    }
-				}, 20000, 30000);
-			}
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
 
 	@Override
-	public boolean registerNode(Node node) {
+	public List<Node> registerNode(Node node) {
 		try {
 			System.out.println("New node registered: " + node.getAlias() + ", address: " + node.getAddress());
 			ResteasyClient client = new ResteasyClientBuilder().build();
 
-			for (Node n : this.nodes) {
+			for (Node n : nodeManager.getNodes()) {
 				ResteasyWebTarget rtarget = client.target("http://" + n.getAddress() + "/ChatWar/rest/connection");
 				ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
-				boolean test = rest.newNodeConnected(node);
+				rest.newNodeConnected(node);
 			}
-			this.nodes.add(new Node(node.getAlias(), node.getAddress()));
-			
-			try {
-				ResteasyWebTarget rtarget = client.target("http://" + node.getAddress() + "/ChatWar/rest/connection");
-				ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
-				boolean test = rest.setNodes(this.nodes);
-				test = rest.setLoggedIn(this.data.getLoggedInUsers());
-			} catch (Exception e) {
-				System.out.println("New node not responding... Trying again...");
-				try {
-					Thread.sleep(200);
-					ResteasyWebTarget rtarget = client.target("http://" + node.getAddress() + "/ChatWar/rest/connection");
-					ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
-					boolean test = rest.setNodes(this.nodes);
-					test = rest.setLoggedIn(this.data.getLoggedInUsers());
-				} catch (Exception e1) {
-					throw e1;
-				}
-			}
-			return true;
-			
+			nodeManager.getNodes().add(new Node(node.getAlias(), node.getAddress()));
+			return nodeManager.getNodes();
 		} catch (Exception e) {
 			System.out.println("New node not responding... Deleting node from cluster...");
 
 			ResteasyClient client = new ResteasyClientBuilder().build();
-			for (Node n : this.nodes) {
+			for (Node n : nodeManager.getNodes()) {
 				if (!n.getAlias().equals(node.getAlias())) {
 					ResteasyWebTarget rtarget = client.target("http://" + n.getAddress() + "/ChatWar/rest/connection");
 					ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
@@ -149,45 +59,94 @@ public class ServersRest implements ServersRestRemote {
 				}
 			}
 			this.deleteNode(node.getAlias());
-			return false;
+			return null;
 		}
-		
 	}
 
 	@Override
-	public boolean newNodeConnected(Node node) {
+	public void newNodeConnected(Node node) {
 		System.out.println("New node connected: " + node.getAlias() + ", address: " + node.getAddress());
-		this.nodes.add(new Node(node.getAlias(), node.getAddress()));
-		return true;
+		nodeManager.getNodes().add(new Node(node.getAlias(), node.getAddress()));
 	}
 
 	@Override
 	public boolean setNodes(List<Node> nodes) {
-		this.nodes = nodes;
+		nodeManager.setNodes(nodes);
 		return true;
 	}
 	
 	@Override
 	public boolean setLoggedIn(HashMap<String, User> loggedIn) {
-		this.data.setLoggedInUsers(loggedIn);
+		System.out.println("Logged in users updated");
+		data.setLoggedInUsers(loggedIn);
 		return true;
+	}
+	
+	@Override
+	public HashMap<String, User> getLoggedIn() {
+		return data.getLoggedInUsers();
 	}
 
 	@Override
 	public boolean deleteNode(String alias) {
 		System.out.println("Deleting node: " + alias + " from cluster");
-		int index = IntStream.range(0, this.nodes.size())
-			     .filter(i -> this.nodes.get(i).getAlias().equals(alias))
+		int index = IntStream.range(0, nodeManager.getNodes().size())
+			     .filter(i -> nodeManager.getNodes().get(i).getAlias().equals(alias))
 			     .findFirst()
 			     .orElse(-1);
 		if (index != -1) {
-			this.nodes.remove(index);
+			nodeManager.getNodes().remove(index);
 		}
 		return true;
 	}
 
 	@Override
 	public String getNodeHealth() {
-		return this.node.getAlias();
+		System.out.println("Node health check");
+		return nodeManager.getNode().getAlias();
+	}
+	
+	public void informNodesAboutLoggedInUsers() {
+		ResteasyClient client = new ResteasyClientBuilder().build();
+		for (Node node: nodeManager.getNodes()) {
+			if (node.getAlias().equals(nodeManager.getNode().getAlias())) {
+        		continue;
+        	}
+			ResteasyWebTarget rtarget = client.target("http://" + node.getAddress() + "/ChatWar/rest/connection");
+			ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
+			rest.setLoggedIn(data.getLoggedInUsers());
+		}
+		if (!nodeManager.getNode().getAddress().equals(nodeManager.getMaster())) {
+			ResteasyWebTarget rtarget = client.target("http://" + nodeManager.getMaster() + "/ChatWar/rest/connection");
+			ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
+			rest.setLoggedIn(data.getLoggedInUsers());
+		}
+	}
+	
+	public void informNodesNewUserRegistered(User user) {
+		ResteasyClient client = new ResteasyClientBuilder().build();
+		for (Node node: nodeManager.getNodes()) {
+			if (node.getAlias().equals(nodeManager.getNode().getAlias())) {
+        		continue;
+        	}
+			ResteasyWebTarget rtarget = client.target("http://" + node.getAddress() + "/ChatWar/rest/connection");
+			ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
+			rest.newUserRegistered(user);
+		}
+		if (!nodeManager.getNode().getAddress().equals(nodeManager.getMaster())) {
+			ResteasyWebTarget rtarget = client.target("http://" + nodeManager.getMaster() + "/ChatWar/rest/connection");
+			ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
+			rest.newUserRegistered(user);
+		}
+	}
+
+	@Override
+	public void newUserRegistered(User user) {
+		System.out.println("New user: " + user.getUsername() + " registered on: " + user.getHost());
+		data.getRegisteredUsers().put(user.getUsername(), user);
+	}
+	
+	public Node getNode() {
+		return nodeManager.getNode();
 	}
 }

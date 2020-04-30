@@ -7,6 +7,7 @@ import javax.annotation.Resource;
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Stateless;
+import javax.inject.Inject;
 import javax.jms.ConnectionFactory;
 import javax.jms.ObjectMessage;
 import javax.jms.Queue;
@@ -26,7 +27,10 @@ import javax.ws.rs.core.Response;
 
 import messages.AgentManager;
 import model.Message;
+import model.Node;
 import model.User;
+import servers.NodeManager;
+import servers.ServersRestLocal;
 
 @Stateless
 @Path("/chat")
@@ -42,6 +46,9 @@ public class ChatBean {
 	private DataBean data;
 	@EJB
 	private AgentManager agents;
+	@EJB
+	private ServersRestLocal serversRest;
+
 	
 	@POST
 	@Path("/users/register")
@@ -52,11 +59,18 @@ public class ChatBean {
 		if (check != null) {
 			return Response.status(Response.Status.BAD_REQUEST).entity("Username already exists").build();
 		}
+
+		Node node = serversRest.getNode();
+		System.out.println("host " + node.getAddress() + " name" + node.getAlias());
+		User registered = new User( user.getUsername(), node.getAddress(), user.getPassword());
+		System.out.println(registered.getHost());
+		data.getRegisteredUsers().put(registered.getUsername(), registered);
+		agents.createNewAgent(registered.getUsername(), registered);
 		
-		data.getRegisteredUsers().put(user.getUsername(), user);
-		agents.createNewAgent(user.getUsername(), user);
+		serversRest.informNodesNewUserRegistered(registered);
+		
 		// Log ------------
-		System.out.println("User { " + user.getUsername() + " } registered");
+		System.out.println("User { " + registered.getUsername() + " } registered");
 		// -----------------
 		return Response.status(Response.Status.OK).build();
 	}
@@ -74,6 +88,8 @@ public class ChatBean {
 		// TODO: Cookie?
 		
 		data.getLoggedInUsers().put(checkRegistered.getUsername(), checkRegistered);
+		
+		serversRest.informNodesAboutLoggedInUsers();
 		
 		// Log ------------
 		System.out.println("User { " + checkRegistered.getUsername() + " } logged IN");
@@ -93,6 +109,8 @@ public class ChatBean {
 		
 		data.getLoggedInUsers().remove(username);
 		
+		serversRest.informNodesAboutLoggedInUsers();
+
 		// Log ------------
 		System.out.println("User { " + username + " } logged OUT");
 		// -----------------

@@ -21,13 +21,13 @@ public interface ServersRestRemote {
 	@Path("/register")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public boolean registerNode(Node node);
+	public List<Node> registerNode(Node node);
 	
 	@POST
 	@Path("/node")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public boolean newNodeConnected(Node node);
+	public void newNodeConnected(Node node);
 	
 	@POST
 	@Path("/nodes")
@@ -41,6 +41,16 @@ public interface ServersRestRemote {
 	@Produces(MediaType.APPLICATION_JSON)
 	public boolean setLoggedIn(HashMap<String, User> loggedIn);
 	
+	@GET
+	@Path("/users/loggedIn")
+	@Produces(MediaType.APPLICATION_JSON)
+	public HashMap<String, User> getLoggedIn();
+	
+	@POST
+	@Path("/users/register")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public void newUserRegistered(User user);
+	
 	@DELETE
 	@Path("/node/{alias}")
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -51,4 +61,5 @@ public interface ServersRestRemote {
 	@Path("/node")
 	@Produces(MediaType.APPLICATION_JSON)
 	public String getNodeHealth();
+	
 }
