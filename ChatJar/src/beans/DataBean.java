@@ -25,6 +25,10 @@ public class DataBean {
 	public HashMap<String, User> getRegisteredUsers() {
 		return registeredUsers;
 	}
+	
+	public void setRegisteredUsers(HashMap<String, User> registeredUsers) {
+		this.registeredUsers = registeredUsers;
+	}
 
 	public HashMap<String, User> getLoggedInUsers() {
 		return loggedInUsers;

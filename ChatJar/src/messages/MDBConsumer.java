@@ -64,18 +64,20 @@ public class MDBConsumer implements MessageListener{
 		        	reciever.onMessage(msg);
 			        ws.sendToOne(message.getReceiver(), jsonMessage);
 		        } else {
+		        	message.setSentOverNetwork(true); // Only logging purposes here
 		        	User user = data.getRegisteredUsers().get(message.getReceiver());
 		        	ResteasyClient client = new ResteasyClientBuilder().build();
 					ResteasyWebTarget rtarget = client.target("http://" + user.getHost() + "/ChatWar/rest/chat");
 					ChatBeanRemote rest = rtarget.proxy(ChatBeanRemote.class);
 					rest.sendMessageUser(message);
 		        }
-	        } else {
+	        } else { // Message to ALL
 	        	for(Agent agent: agents.getAgents().values()) {
 	        		agent.onMessage(msg);
 	        	}
 	        	ws.broadcast(jsonMessage);
-	        	// Preventing loop, message gets redirected back to originating host
+	        	// Preventing loop
+	        	// If it is sent over the network it should not be forwarded to other hosts
 	        	if (message.isSentOverNetwork()) {
 	        		return;
 	        	}

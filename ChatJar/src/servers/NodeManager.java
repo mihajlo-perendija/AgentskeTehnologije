@@ -8,6 +8,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Singleton;
@@ -39,7 +40,7 @@ public class NodeManager {
 	private String master = null;
 	private Node node = new Node();
 	
-	// Master is not in "nodes", its IP is in all nodes
+	// Master is not in the "nodes", its IP hardcoded is in all nodes
 	// Preventing deleting master and health checking it
 	private List<Node> nodes = new ArrayList<Node>();
 	
@@ -54,6 +55,7 @@ public class NodeManager {
 			this.node.setAddress((String) mBeanServer.getAttribute(http,"boundAddress") + ":8080");
 			this.node.setAlias(System.getProperty("jboss.node.name") + ":8080");
 			
+			// Hardcoded, could use .properties file
 			this.master = "192.168.0.15:8080";
 			System.out.println("MASTER ADDR: " + master + ", node name: " + this.node.getAlias() + ", node address: " + this.node.getAddress());
 			
@@ -70,8 +72,12 @@ public class NodeManager {
 					System.out.println("Alias: " + n.getAlias() + ", Address: " + n.getAddress());
 				}
 				System.out.println("Getting logged in users...");
-				HashMap<String, User> users = rest.getLoggedIn();
-				this.data.setLoggedInUsers(users);
+				// Calling getLoggedIn and getRegistered only in handshake instead of master setting them by himself, problems with locking threads
+				HashMap<String, User> loggedIn = rest.getLoggedIn();
+				this.data.setLoggedInUsers(loggedIn);
+				// Prevents new user registering with the same username
+				HashMap<String, User> registered = rest.getRegistered();
+				this.data.setRegisteredUsers(registered);
 				for (User user: this.data.getLoggedInUsers().values()) {
 					System.out.println("Username: " + user.getUsername() + " Node: " + user.getHost());
 				}
@@ -94,6 +100,12 @@ public class NodeManager {
 							String alias = rest.getNodeHealth();
 							System.out.println(alias + " - Alive");
 			        	} catch (Exception e) {
+			        		// Try again if error or timeout
+			        		try {
+								Thread.sleep(300); // The check could happen during the handshake (server is not yet fully started)
+							} catch (InterruptedException e3) {
+								e3.printStackTrace();
+							}
 			        		try {
 				        		ResteasyWebTarget rtarget = client.target("http://" + n.getAddress() + "/ChatWar/rest/connection");
 								ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
@@ -103,11 +115,17 @@ public class NodeManager {
 				    			System.out.println("Node: " + n.getAlias() + " not responding... Deleting node from cluster...");
 				        		for (Node n1: nodes) {
 				        			if (n1.getAlias().equals(n.getAlias())) {
+				        				// Inform all but the one that is not responding
 						        		continue;
 						        	}
 				        			ResteasyWebTarget rtarget = client.target("http://" + n1.getAddress() + "/ChatWar/rest/connection");
 				    				ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
 				    				rest.deleteNode(n.getAlias());
+				        		}
+				        		if (!getNode().getAddress().equals(getMaster())) {
+				        			ResteasyWebTarget rtarget = client.target("http://" + getMaster() + "/ChatWar/rest/connection");
+				        			ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
+				        			rest.deleteNode(n.getAlias());
 				        		}
 				        		
 				    			data.getLoggedInUsers().values().removeIf( ServersRest.isUserFromHost(n.getAddress()) );
@@ -123,16 +141,37 @@ public class NodeManager {
 				        		getNodes().remove(n);
 				    			System.out.println("Node: " + n.getAlias() + " deleted from cluster");
 				    			// Escape deleting in for loop
+				    			// Not great, not terrible
 				    			return;
 							}
 						}
 			        }
 			    }
-			}, 40000, 40000); // Every 40 seconds
+			}, 40000, 40000); // Every 40 seconds check the health of all nodes except master
 			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	@PreDestroy
+	private void informNodeShuttingDown() {
+		System.out.println("Shutting down... Informing all nodes in cluster...");
+		ResteasyClient client = new ResteasyClientBuilder().build();
+		for (Node n: nodes) {
+			if (n.getAlias().equals(this.node.getAlias())) {
+        		continue;
+        	}
+			ResteasyWebTarget rtarget = client.target("http://" + n.getAddress() + "/ChatWar/rest/connection");
+			ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
+			rest.deleteNode(this.node.getAlias());
+		}
+		if (!getNode().getAddress().equals(getMaster())) {
+			ResteasyWebTarget rtarget = client.target("http://" + getMaster() + "/ChatWar/rest/connection");
+			ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
+			rest.deleteNode(getNode().getAlias());
+		}
+		System.out.println("Node manager: shutdown completed");
 	}
 	
 	public Node getNode() {

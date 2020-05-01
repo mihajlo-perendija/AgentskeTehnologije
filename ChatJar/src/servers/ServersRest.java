@@ -54,14 +54,19 @@ public class ServersRest implements ServersRestRemote, ServersRestLocal {
 			nodeManager.getNodes().add(new Node(node.getAlias(), node.getAddress()));
 			return nodeManager.getNodes();
 		} catch (Exception e) {
-			System.out.println("New node not responding... Deleting node from cluster...");
+			System.out.println("Error while registerning new node... Deleting node from cluster...");
 
 			ResteasyClient client = new ResteasyClientBuilder().build();
 			for (Node n : nodeManager.getNodes()) {
 				if (!n.getAlias().equals(node.getAlias())) {
-					ResteasyWebTarget rtarget = client.target("http://" + n.getAddress() + "/ChatWar/rest/connection");
-					ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
-					rest.deleteNode(node.getAlias());
+					try {
+						ResteasyWebTarget rtarget = client.target("http://" + n.getAddress() + "/ChatWar/rest/connection");
+						ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
+						rest.deleteNode(node.getAlias());
+					} catch (Exception e1) {
+						System.out.println(n.getAlias() + " not responding...");
+						e1.printStackTrace();
+					}
 				}
 			}
 			this.deleteNode(node.getAlias());
@@ -76,13 +81,12 @@ public class ServersRest implements ServersRestRemote, ServersRestLocal {
 	}
 
 	@Override
-	public boolean setNodes(List<Node> nodes) {
+	public void setNodes(List<Node> nodes) {
 		nodeManager.setNodes(nodes);
-		return true;
 	}
 	
 	@Override
-	public boolean setLoggedIn(HashMap<String, User> loggedIn) {
+	public void setLoggedIn(HashMap<String, User> loggedIn) {
 		System.out.println("Logged in users updated");
 		data.setLoggedInUsers(loggedIn);
 		// WebSocket
@@ -93,30 +97,47 @@ public class ServersRest implements ServersRestRemote, ServersRestLocal {
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
-		return true;
 	}
 	
 	@Override
 	public HashMap<String, User> getLoggedIn() {
+		if (!nodeManager.getNode().getAddress().equals(nodeManager.getMaster())) {
+			return null;
+		}
 		return data.getLoggedInUsers();
+	}
+	
+	@Override
+	public HashMap<String, User> getRegistered() {
+		if (!nodeManager.getNode().getAddress().equals(nodeManager.getMaster())) {
+			return null;
+		}
+		return data.getRegisteredUsers();
 	}
 
 	@Override
-	public boolean deleteNode(String alias) {
-		System.out.println("Deleting node: " + alias + " from cluster");
+	public void deleteNode(String alias) {
 		int index = IntStream.range(0, nodeManager.getNodes().size())
 			     .filter(i -> nodeManager.getNodes().get(i).getAlias().equals(alias))
 			     .findFirst()
 			     .orElse(-1);
-		
+		// Deleting all information, no persistence implemented
 		if (index != -1) {
+			System.out.println("Deleting node: " + alias + " from cluster");
 			Node node = nodeManager.getNodes().get(index);
 			data.getLoggedInUsers().values().removeIf( isUserFromHost(node.getAddress()) );
 			data.getRegisteredUsers().values().removeIf( isUserFromHost(node.getAddress()) );
 			nodeManager.getNodes().remove(index);
 			System.out.println("Node: " + alias + " deleted from cluster");
+			// WebSocket
+			ObjectMapper mapper = new ObjectMapper();
+	        try {
+				String jsonMessage = mapper.writeValueAsString(data.getLoggedInUsers().values());
+				ws.updateLoggedInUsers(jsonMessage);
+			} catch (JsonProcessingException e1) {
+				e1.printStackTrace();
+			}
 		}
-		return true;
 	}
 	
 	public static Predicate<User> isUserFromHost(String address) 

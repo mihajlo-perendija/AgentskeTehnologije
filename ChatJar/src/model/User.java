@@ -17,7 +17,7 @@ public class User implements Serializable{
 	private String host;
 	@JsonProperty(access = Access.WRITE_ONLY)
 	private String password;
-	@JsonProperty(access = Access.WRITE_ONLY)
+	@JsonProperty(access = Access.WRITE_ONLY) // Should be acquired with /messages/{username}
 	private ArrayList<Message> messages = new ArrayList<Message>();
 
 	public User() {

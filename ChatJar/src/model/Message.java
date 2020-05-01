@@ -10,7 +10,7 @@ public class Message implements Serializable{
 	private String receiver;
 	private long timeStamp;
 	private String text;
-	private boolean sentOverNetwork = false;
+	private boolean sentOverNetwork = false; // Prevents loop when sending to all users over network
 	
 	public Message() {
 		super();

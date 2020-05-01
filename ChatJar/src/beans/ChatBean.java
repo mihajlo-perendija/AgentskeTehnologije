@@ -195,10 +195,10 @@ public class ChatBean implements ChatBeanRemote{
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		String type = message.isSentOverNetwork() ? " / over network }" : "/ same host }";
-
+		
 		// Log ------------
-		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText()
+		String type = message.isSentOverNetwork() ? " / over network }" : " / from this host }";
+		System.out.println("Message { sender: " + message.getSender() + " text: " + message.getText()
 		+ " time: " + message.getTimeStamp() + " TO: " + message.getReceiver() +  type);
 		// -----------------
 		
@@ -220,9 +220,9 @@ public class ChatBean implements ChatBeanRemote{
 			return Response.status(Response.Status.BAD_REQUEST).entity("Invalid reciever").build();
 		}
 		
-		String type = message.isSentOverNetwork() ? " / over network }" : "/ same host }";
 		// Log ------------
-		System.out.println("Sent message { sender: " + message.getSender() + " text: " + message.getText() +
+		String type = message.isSentOverNetwork() ? " / over network }" : " / from this host }";
+		System.out.println("Message { sender: " + message.getSender() + " text: " + message.getText() +
 				" time: " + message.getTimeStamp() + " TO: " + message.getReceiver() + type);
 		// -----------------
 		

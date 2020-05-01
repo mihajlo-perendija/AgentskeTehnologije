@@ -33,18 +33,23 @@ public interface ServersRestRemote {
 	@Path("/nodes")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public boolean setNodes(List<Node> nodes);
+	public void setNodes(List<Node> nodes);
 	
 	@POST
 	@Path("/users/loggedIn")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public boolean setLoggedIn(HashMap<String, User> loggedIn);
+	public void setLoggedIn(HashMap<String, User> loggedIn);
 	
-	@GET
+	@GET // Called only in handshake by new registered node
 	@Path("/users/loggedIn")
 	@Produces(MediaType.APPLICATION_JSON)
 	public HashMap<String, User> getLoggedIn();
+	
+	@GET // Called only in handshake by new registered node
+	@Path("/users/registered")
+	@Produces(MediaType.APPLICATION_JSON)
+	public HashMap<String, User> getRegistered();
 	
 	@POST
 	@Path("/users/register")
@@ -55,7 +60,7 @@ public interface ServersRestRemote {
 	@Path("/node/{alias}")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public boolean deleteNode(@PathParam("alias") String alias);
+	public void deleteNode(@PathParam("alias") String alias);
 	
 	@GET
 	@Path("/node")
