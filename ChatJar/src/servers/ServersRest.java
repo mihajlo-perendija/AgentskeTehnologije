@@ -2,36 +2,43 @@ package servers;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
+import javax.ejb.EJB;
 import javax.ejb.Local;
 import javax.ejb.LocalBean;
 import javax.ejb.Remote;
 import javax.ejb.Stateless;
-import javax.inject.Inject;
 import javax.ws.rs.Path;
 
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import beans.DataBean;
 import model.Node;
 import model.User;
+import ws.WSEndpoint;
 
 @Stateless
-//@DependsOn("DataBean")
 @Remote(ServersRestRemote.class)
 @Local(ServersRestLocal.class)
 @Path("/connection")
 @LocalBean
 public class ServersRest implements ServersRestRemote, ServersRestLocal {
 	
-	@Inject
-	NodeManager nodeManager;
+	@EJB
+	private NodeManager nodeManager;
 	
-	@Inject
-	DataBean data;
+	@EJB
+	private DataBean data;
+	
+	@EJB
+	private WSEndpoint ws;
 
 	@Override
 	public List<Node> registerNode(Node node) {
@@ -78,6 +85,14 @@ public class ServersRest implements ServersRestRemote, ServersRestLocal {
 	public boolean setLoggedIn(HashMap<String, User> loggedIn) {
 		System.out.println("Logged in users updated");
 		data.setLoggedInUsers(loggedIn);
+		// WebSocket
+		ObjectMapper mapper = new ObjectMapper();
+        try {
+			String jsonMessage = mapper.writeValueAsString(data.getLoggedInUsers().values());
+			ws.updateLoggedInUsers(jsonMessage);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+		}
 		return true;
 	}
 	
@@ -93,10 +108,20 @@ public class ServersRest implements ServersRestRemote, ServersRestLocal {
 			     .filter(i -> nodeManager.getNodes().get(i).getAlias().equals(alias))
 			     .findFirst()
 			     .orElse(-1);
+		
 		if (index != -1) {
+			Node node = nodeManager.getNodes().get(index);
+			data.getLoggedInUsers().values().removeIf( isUserFromHost(node.getAddress()) );
+			data.getRegisteredUsers().values().removeIf( isUserFromHost(node.getAddress()) );
 			nodeManager.getNodes().remove(index);
+			System.out.println("Node: " + alias + " deleted from cluster");
 		}
 		return true;
+	}
+	
+	public static Predicate<User> isUserFromHost(String address) 
+	{
+	    return user -> user.getHost().equals(address);
 	}
 
 	@Override
@@ -142,6 +167,7 @@ public class ServersRest implements ServersRestRemote, ServersRestLocal {
 	@Override
 	public void newUserRegistered(User user) {
 		System.out.println("New user: " + user.getUsername() + " registered on: " + user.getHost());
+		// Saves username and his host, not password. User can sign in only on his main host
 		data.getRegisteredUsers().put(user.getUsername(), user);
 	}
 	

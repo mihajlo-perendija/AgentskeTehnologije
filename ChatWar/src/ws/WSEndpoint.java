@@ -50,6 +50,16 @@ public class WSEndpoint {
 			}
     	}
     }
+    
+    public void updateLoggedInUsers(String users) {
+    	for (Session session: sessions.values()) {
+    		try {
+				session.getBasicRemote().sendText(users);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+    	}
+    }
 	
     @OnMessage
     public void onMessage(String message) {

@@ -8,10 +8,10 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.annotation.PostConstruct;
+import javax.ejb.EJB;
 import javax.ejb.LocalBean;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
-import javax.inject.Inject;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
@@ -19,16 +19,22 @@ import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import beans.DataBean;
 import model.Node;
 import model.User;
+import ws.WSEndpoint;
 
 @Singleton
 @Startup
 @LocalBean
 public class NodeManager {
-	@Inject
-	DataBean data;
+	@EJB
+	private DataBean data;
+	@EJB
+	private WSEndpoint ws;
 	
 	private String master = null;
 	private Node node = new Node();
@@ -37,14 +43,13 @@ public class NodeManager {
 	// Preventing deleting master and health checking it
 	private List<Node> nodes = new ArrayList<Node>();
 	
-	private Timer hearthBeat = new Timer();
+	private Timer heartBeat = new Timer();
 	
 	@PostConstruct
 	private void init() {
 		try {
 	        MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
             ObjectName http = new ObjectName("jboss.as:socket-binding-group=standard-sockets,socket-binding=http");
-			
 
 			this.node.setAddress((String) mBeanServer.getAttribute(http,"boundAddress") + ":8080");
 			this.node.setAlias(System.getProperty("jboss.node.name") + ":8080");
@@ -60,6 +65,7 @@ public class NodeManager {
 				this.nodes = rest.registerNode(this.node);
 				System.out.println("Node registered");
 				System.out.println("Nodes in cluster:");
+				System.out.println("MASTER: " + master);
 				for (Node n: this.nodes) {
 					System.out.println("Alias: " + n.getAlias() + ", Address: " + n.getAddress());
 				}
@@ -67,13 +73,12 @@ public class NodeManager {
 				HashMap<String, User> users = rest.getLoggedIn();
 				this.data.setLoggedInUsers(users);
 				for (User user: this.data.getLoggedInUsers().values()) {
-
 					System.out.println("Username: " + user.getUsername() + " Node: " + user.getHost());
-				} // PRINT USER NODE
+				}
 				System.out.println("Handshake completed");
 			}
 			
-			hearthBeat.scheduleAtFixedRate(new TimerTask() {
+			heartBeat.scheduleAtFixedRate(new TimerTask() {
 				ResteasyClient client = new ResteasyClientBuilder().build();
 
 			    @Override
@@ -97,16 +102,33 @@ public class NodeManager {
 				        	} catch (Exception e2) {
 				    			System.out.println("Node: " + n.getAlias() + " not responding... Deleting node from cluster...");
 				        		for (Node n1: nodes) {
+				        			if (n1.getAlias().equals(n.getAlias())) {
+						        		continue;
+						        	}
 				        			ResteasyWebTarget rtarget = client.target("http://" + n1.getAddress() + "/ChatWar/rest/connection");
 				    				ServersRestRemote rest = rtarget.proxy(ServersRestRemote.class);
 				    				rest.deleteNode(n.getAlias());
 				        		}
+				        		
+				    			data.getLoggedInUsers().values().removeIf( ServersRest.isUserFromHost(n.getAddress()) );
+				    			data.getRegisteredUsers().values().removeIf( ServersRest.isUserFromHost(n.getAddress()) );
+				    			// WebSocket
+				    			ObjectMapper mapper = new ObjectMapper();
+				    	        try {
+				    				String jsonMessage = mapper.writeValueAsString(data.getLoggedInUsers().values());
+				    				ws.updateLoggedInUsers(jsonMessage);
+				    			} catch (JsonProcessingException e1) {
+				    				e1.printStackTrace();
+				    			}
 				        		getNodes().remove(n);
+				    			System.out.println("Node: " + n.getAlias() + " deleted from cluster");
+				    			// Escape deleting in for loop
+				    			return;
 							}
 						}
 			        }
 			    }
-			}, 50000, 50000);
+			}, 40000, 40000); // Every 40 seconds
 			
 		} catch (Exception e) {
 			e.printStackTrace();

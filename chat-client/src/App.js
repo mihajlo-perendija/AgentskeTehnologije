@@ -93,16 +93,21 @@ class App extends Component {
         }
 
         this.websocket.onmessage = evt => {
-            // on receiving a message, add it to the list of messages
-            const message = JSON.parse(evt.data)
-            let messages = [...this.state.loggedInUser.messages, message]
-            let user = this.state.loggedInUser;
-            user.messages = messages;
-            this.setState({
-                loggedInUser: user,
-                text: ""
-            }, this.getConversationMessages);
-            //this.addMessage(message)
+            const data = JSON.parse(evt.data)
+            if (data.text !== undefined){
+                // New message
+                const message = data;
+                let messages = [...this.state.loggedInUser.messages, message]
+                let user = this.state.loggedInUser;
+                user.messages = messages;
+                this.setState({
+                    loggedInUser: user,
+                    text: ""
+                }, this.getConversationMessages);
+            } else {
+                // Logged in users
+                this.setState({ users: data.filter(user => user.username !== this.state.loggedInUser.username) });
+            }
         }
 
         this.websocket.onclose = () => {

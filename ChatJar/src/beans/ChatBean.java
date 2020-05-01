@@ -25,11 +25,15 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import messages.AgentManager;
 import model.Message;
 import model.Node;
 import model.User;
 import servers.ServersRestLocal;
+import ws.WSEndpoint;
 
 @Stateless
 @Path("/chat")
@@ -48,6 +52,8 @@ public class ChatBean implements ChatBeanRemote{
 	private AgentManager agents;
 	@EJB
 	private ServersRestLocal serversRest;
+	@EJB
+	private WSEndpoint ws;
 
 	
 	@POST
@@ -61,9 +67,7 @@ public class ChatBean implements ChatBeanRemote{
 		}
 
 		Node node = serversRest.getNode();
-		System.out.println("host " + node.getAddress() + " name" + node.getAlias());
 		User registered = new User( user.getUsername(), node.getAddress(), user.getPassword());
-		System.out.println(registered.getHost());
 		data.getRegisteredUsers().put(registered.getUsername(), registered);
 		agents.createNewAgent(registered.getUsername(), registered);
 		
@@ -85,11 +89,19 @@ public class ChatBean implements ChatBeanRemote{
 			return Response.status(Response.Status.BAD_REQUEST).entity("Invalid username or password").build();
 		}
 		
-		// TODO: Cookie?
-		
 		data.getLoggedInUsers().put(checkRegistered.getUsername(), checkRegistered);
 		
 		serversRest.informNodesAboutLoggedInUsers();
+		
+		// WebSocket
+		ObjectMapper mapper = new ObjectMapper();
+        try {
+			String jsonMessage = mapper.writeValueAsString(data.getLoggedInUsers().values());
+			ws.updateLoggedInUsers(jsonMessage);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+		}
+        
 		
 		// Log ------------
 		System.out.println("User { " + checkRegistered.getUsername() + " } logged IN");
@@ -110,6 +122,15 @@ public class ChatBean implements ChatBeanRemote{
 		data.getLoggedInUsers().remove(username);
 		
 		serversRest.informNodesAboutLoggedInUsers();
+		
+		// WebSocket
+		ObjectMapper mapper = new ObjectMapper();
+        try {
+			String jsonMessage = mapper.writeValueAsString(data.getLoggedInUsers().values());
+			ws.updateLoggedInUsers(jsonMessage);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+		}
 
 		// Log ------------
 		System.out.println("User { " + username + " } logged OUT");
@@ -133,8 +154,6 @@ public class ChatBean implements ChatBeanRemote{
 		System.out.println("----------------");
 		// -----------------
 		
-		// TODO: websocket
-		
 		return Response.status(Response.Status.OK).entity(retVal).build();
 	}
 	
@@ -151,7 +170,6 @@ public class ChatBean implements ChatBeanRemote{
 			System.out.println(u.getId() + " " +u.getUsername() + " " + u.getPassword());
 		}
 		System.out.println("----------------");
-
 		// -----------------
 		
 		return Response.status(Response.Status.OK).entity(retVal).build();
